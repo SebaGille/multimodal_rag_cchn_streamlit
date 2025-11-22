@@ -63,7 +63,8 @@ KMP_DUPLICATE_LIB_OK=TRUE \
 streamlit run app/streamlit_app.py
 ```
 
-Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`. Provide an OpenAI API key in `.env` before launching.
+Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`. Provide an OpenAI API key in `.env` before launching.  
+The repository already tracks `vectorstores/full_manual_faiss`, so remote hosts (e.g., Streamlit Cloud) clone the ready-to-use index by default.
 
 ## Scaling to the Full Manual
 

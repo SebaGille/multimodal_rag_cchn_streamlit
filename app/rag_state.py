@@ -29,11 +29,12 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
 
 DEFAULT_RUN_STATE: Dict[str, Any] = {
     "question": "",
-    "answer": "",
-    "references": [],
+    "selected_modes": [],
+    "mode_results": [],
     "retrieved_count": 0,
     "error": "",
     "last_run_settings": {},
+    "planning_artifacts": {},
 }
 
 

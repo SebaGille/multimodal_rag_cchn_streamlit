@@ -73,9 +73,18 @@ def main() -> None:
 
     st.divider()
     st.subheader("Latest run details")
+    mode_results = run_state.get("mode_results", [])
     if run_state.get("question"):
         st.markdown(f"- Last question: `{run_state['question']}`")
-        st.markdown(f"- Passages retrieved: {run_state.get('retrieved_count', 0)}")
+        st.markdown(f"- Total passages retrieved: {run_state.get('retrieved_count', 0)}")
+        if mode_results:
+            st.markdown("- Modes executed:")
+            for mode in mode_results:
+                st.markdown(
+                    f"  • **{mode.get('label', 'Mode')}** — "
+                    f"{mode.get('retrieved_count', 0)} passages, "
+                    f"{mode.get('retrieval_variant', 'simple')} retrieval"
+                )
         last_settings = run_state.get("last_run_settings", {})
         if last_settings:
             st.markdown(
@@ -87,6 +96,15 @@ def main() -> None:
 
     if run_state.get("error"):
         st.error(f"Most recent error: {run_state['error']}")
+    else:
+        errored_modes = [
+            mode for mode in mode_results if mode.get("error")
+        ]
+        if errored_modes:
+            st.warning(
+                "Some modes reported issues: "
+                + ", ".join(f"{mode.get('label')}" for mode in errored_modes)
+            )
 
 
 if __name__ == "__main__":
