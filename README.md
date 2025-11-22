@@ -1,4 +1,4 @@
-# CCHN Manual RAG Prototype
+# MULTIMODAL_RAG_CCHN_STREAMLIT
 
 Lightweight multimodal RAG workflow for the CCHN Field Manual. The repo already ingests the short extract PDF, builds a FAISS vector store with OpenAI embeddings, exposes a CLI answer helper, and ships a Streamlit UI.
 
