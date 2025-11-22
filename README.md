@@ -8,7 +8,7 @@ Lightweight multimodal RAG workflow for the CCHN Field Manual. The repo already 
 - `ingestion/build_vectorstore.py` – chunks parsed docs, embeds with OpenAI, and saves a local FAISS index.
 - `rag/answer.py` – minimal retrieval + ChatOpenAI answering CLI with inline chunk citations.
 - `app/streamlit_app.py` – single-question Streamlit interface showing the answer and retrieved snippets.
-- `data/` – parsed document cache (e.g., `short_extract_docs.json`).
+- `data/` – raw PDFs and parsed document cache (e.g., `raw/cchn_field_manual_short_extract.pdf`, `short_extract_docs.json`).
 - `vectorstores/` – persisted FAISS indexes (e.g., `short_extract_faiss`).
 
 ## Prerequisites
@@ -30,7 +30,7 @@ Parse a PDF into JSON documents:
 ```bash
 source .venv/bin/activate
 python ingestion/parse_pdf.py \
-  --pdf cchn_field_manual_short_extract.pdf \
+  --pdf data/raw/cchn_field_manual_short_extract.pdf \
   --output data/short_extract_docs.json
 ```
 
@@ -65,5 +65,5 @@ Sidebar controls let you point to any FAISS directory, choose embedding/chat mod
 
 ## Scaling to the Full Manual
 
-Reuse the same commands with the full `cchn_field_manual.pdf` to generate a second JSON + vector store, then point both the CLI and Streamlit UI to the new directory.
+Reuse the same commands with the full `data/raw/cchn_field_manual.pdf` to generate a second JSON + vector store, then point both the CLI and Streamlit UI to the new directory.
 

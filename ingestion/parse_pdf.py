@@ -3,7 +3,7 @@ PDF parsing utilities for the CCHN manual RAG pipeline.
 
 Usage:
     python ingestion/parse_pdf.py \
-        --pdf data/short_extract.pdf \
+        --pdf data/raw/cchn_field_manual_short_extract.pdf \
         --output data/short_extract_docs.json
 """
 
