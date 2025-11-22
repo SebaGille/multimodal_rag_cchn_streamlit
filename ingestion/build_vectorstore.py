@@ -3,8 +3,8 @@ Vector store builder for the CCHN manual RAG prototype.
 
 Usage:
     python ingestion/build_vectorstore.py \
-        --docs data/short_extract_docs.json \
-        --output vectorstores/short_extract_faiss
+        --docs data/full_manual_docs.json \
+        --output vectorstores/full_manual_faiss
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("vectorstores/short_extract_faiss"),
+        default=Path("vectorstores/full_manual_faiss"),
         help="Directory where the FAISS index will be stored.",
     )
     parser.add_argument(

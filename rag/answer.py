@@ -4,7 +4,7 @@ Simple retrieval-augmented answering helper for the CCHN RAG prototype.
 Usage:
     python rag/answer.py \
         --question "What is de-escalation?" \
-        --vectorstore vectorstores/short_extract_faiss
+        --vectorstore vectorstores/full_manual_faiss
 """
 
 from __future__ import annotations
@@ -100,7 +100,7 @@ def main() -> None:
     parser.add_argument(
         "--vectorstore",
         type=Path,
-        default=Path("vectorstores/short_extract_faiss"),
+        default=Path("vectorstores/full_manual_faiss"),
         help="Directory containing FAISS index.",
     )
     parser.add_argument(

@@ -3,8 +3,8 @@ PDF parsing utilities for the CCHN manual RAG pipeline.
 
 Usage:
     python ingestion/parse_pdf.py \
-        --pdf data/raw/cchn_field_manual_short_extract.pdf \
-        --output data/short_extract_docs.json
+        --pdf data/raw/CCHN-Field-Manual-EN.pdf \
+        --output data/full_manual_docs.json
 """
 
 from __future__ import annotations
@@ -124,7 +124,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("data/short_extract_docs.json"),
+        default=Path("data/full_manual_docs.json"),
         help="Path to write JSON documents.",
     )
     parser.add_argument(
