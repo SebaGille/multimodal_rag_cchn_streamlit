@@ -1,0 +1,4 @@
+2025-11-23 08:38:31,640 [INFO] Starting mode regression run. Log file: /Users/sebastien/Documents/MULTIMODAL_RAG_CCHN_STREAMLIT/logs/mode_option_regression_20251123-083831.log
+2025-11-23 08:38:31,640 [INFO] Loading vectorstore from /Users/sebastien/Documents/MULTIMODAL_RAG_CCHN_STREAMLIT/vectorstores/full_manual_faiss
+2025-11-23 08:38:31,874 [INFO] ================================================================================
+2025-11-23 08:38:31,874 [INFO] Question: What is a frontline negotiator?

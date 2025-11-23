@@ -1,37 +1,32 @@
 """
-Main chatbot page for the CCHN RAG prototype.
+Utility script to run all four chatbot retrieval modes for control questions and
+log their answers and artifacts for comparison.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
+import logging
+import os
+import sys
 from pathlib import Path
 from textwrap import shorten
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Tuple
+from datetime import datetime
 
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-from rag_state import get_rag_settings, get_run_state, update_run_state
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
-os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+from app.rag_state import DEFAULT_SETTINGS
 
-
-@st.cache_resource
-def load_vectorstore(path: str, embedding_model: str):
-    embeddings = OpenAIEmbeddings(model=embedding_model)
-    return FAISS.load_local(
-        path,
-        embeddings,
-        allow_dangerous_deserialization=True,
-    )
-
-
+# Mode definitions are duplicated here so this script can run outside Streamlit.
 MIN_SUBQUERIES = 3
 MAX_SUBQUERIES = 5
 
@@ -75,10 +70,58 @@ MODE_DEFINITIONS = [
 ]
 
 MODE_LOOKUP = {mode["id"]: mode for mode in MODE_DEFINITIONS}
-DEFAULT_MODE_SELECTION = [MODE_DEFINITIONS[0]["id"]]
+MODE_SEQUENCE = [mode["id"] for mode in MODE_DEFINITIONS]
+
+LOG_DIR = PROJECT_ROOT / "logs"
+
+TEST_QUESTIONS = [
+    "What is a frontline negotiator?",
+    (
+        "I am a EU diplomat in Mali, french citizen. Since the situation between Mali and "
+        "France is currently complicated, should I avoid going to the ministry to negotiate, "
+        "being french, and send someone else from my team to avoid tension during the negotiation."
+    ),
+]
+
+def configure_logging() -> Tuple[logging.Logger, Path]:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_file = LOG_DIR / f"mode_option_regression_{timestamp}.log"
+    logger = logging.getLogger("mode-regression")
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+
+    # Avoid duplicate handlers when re-running the script in the same interpreter.
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+
+    file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    return logger, log_file
 
 
-def build_chain(model_name: str):
+def resolve_vectorstore_path(raw_path: str) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = (PROJECT_ROOT / path).resolve()
+    return path
+
+
+def load_vectorstore(path: Path, embedding_model: str):
+    embeddings = OpenAIEmbeddings(model=embedding_model)
+    return FAISS.load_local(
+        str(path),
+        embeddings,
+        allow_dangerous_deserialization=True,
+    )
+
+
+def build_chain(model_name: str) -> ChatOpenAI:
     return ChatOpenAI(model=model_name, temperature=0)
 
 
@@ -104,7 +147,12 @@ def summarize_document(doc: Document, width: int = 420) -> Dict[str, str]:
     element = meta.get("element_type", "Passage")
     snippet = " ".join(doc.page_content.strip().split())
     excerpt = shorten(snippet, width=width, placeholder="...")
-    return {"page": page, "element": element, "excerpt": excerpt, "content": doc.page_content.strip()}
+    return {
+        "page": page,
+        "element": element,
+        "excerpt": excerpt,
+        "content": doc.page_content.strip(),
+    }
 
 
 def build_prompt(template: str, context_text: str, question: str) -> str:
@@ -129,7 +177,7 @@ def _parse_json_object(raw_text: str) -> Dict[str, Any]:
 
 
 def _clean_keywords(candidates: Sequence[str]) -> List[str]:
-    cleaned = []
+    cleaned: List[str] = []
     for item in candidates or []:
         text = str(item).strip()
         if text and text.lower() not in {kw.lower() for kw in cleaned}:
@@ -157,11 +205,7 @@ def rewrite_query_and_extract_concepts(question: str, llm: ChatOpenAI) -> Dict[s
             ),
         ]
     )
-    try:
-        data = _parse_json_object(response.content)
-    except ValueError as exc:
-        raise ValueError(f"Failed to parse rewrite response: {exc}") from exc
-
+    data = _parse_json_object(response.content)
     rewritten_query = data.get("rewritten_query", "").strip()
     concept_keywords = _clean_keywords(data.get("concept_keywords", []))
     if not rewritten_query:
@@ -187,11 +231,7 @@ def extract_concept_keywords(question: str, llm: ChatOpenAI) -> List[str]:
             ),
         ]
     )
-    try:
-        data = _parse_json_object(response.content)
-    except ValueError as exc:
-        raise ValueError(f"Failed to parse concept extraction response: {exc}") from exc
-
+    data = _parse_json_object(response.content)
     concept_keywords = _clean_keywords(data.get("concept_keywords", []))
     if not concept_keywords:
         raise ValueError("No concept keywords were extracted.")
@@ -217,7 +257,7 @@ def ensure_original_question_subquery(
     subqueries: Sequence[str],
     original_question: str,
 ) -> List[str]:
-    """Ensure the user's original scenario is part of the retrieval subqueries."""
+    """Ensure the raw scenario is always interrogated during retrieval."""
 
     def _append_unique(target: List[str], candidate: str, seen: set[str]) -> None:
         text = (candidate or "").strip()
@@ -305,44 +345,17 @@ def run_multi_query_search(
     return deduped[: top_k or len(deduped)]
 
 
-def run_selected_modes(
+def run_modes_for_question(
     question: str,
     settings: Dict[str, Any],
-    selected_mode_ids: Sequence[str],
-) -> None:
-    path = Path(settings["vectorstore_path"]).expanduser()
+    store,
+    llm: ChatOpenAI,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     deduped_selection: List[str] = []
-    for mode_id in selected_mode_ids:
+    for mode_id in MODE_SEQUENCE:
         if mode_id in MODE_LOOKUP and mode_id not in deduped_selection:
             deduped_selection.append(mode_id)
-    update_run_state(
-        question=question,
-        selected_modes=deduped_selection,
-        mode_results=[],
-        retrieved_count=0,
-        error="",
-    )
 
-    if not deduped_selection:
-        st.warning("Please select at least one search mode.")
-        return
-
-    if not path.exists():
-        error_msg = f"Vectorstore directory '{path}' was not found."
-        update_run_state(error=error_msg)
-        st.error(error_msg)
-        return
-
-    try:
-        with st.spinner("Loading vectorstore..."):
-            store = load_vectorstore(str(path), settings["embedding_model"])
-    except Exception as exc:
-        error_msg = f"Failed to load vectorstore: {exc}"
-        update_run_state(error=error_msg)
-        st.error(error_msg)
-        return
-
-    llm = build_chain(settings["chat_model"])
     requires_rewrite = any(MODE_LOOKUP[mid]["requires_rewrite"] for mid in deduped_selection)
     requires_original_concepts = any(
         MODE_LOOKUP[mid]["query_source"] == "original" and MODE_LOOKUP[mid]["requires_concepts"]
@@ -353,8 +366,7 @@ def run_selected_modes(
     rewriting_error = ""
     if requires_rewrite:
         try:
-            with st.spinner("Rewriting question and extracting concepts..."):
-                rewriting_plan = rewrite_query_and_extract_concepts(question, llm)
+            rewriting_plan = rewrite_query_and_extract_concepts(question, llm)
         except Exception as exc:
             rewriting_error = f"Query rewriting failed: {exc}"
 
@@ -362,8 +374,7 @@ def run_selected_modes(
     original_concepts_error = ""
     if requires_original_concepts:
         try:
-            with st.spinner("Extracting negotiation concepts..."):
-                original_concepts = extract_concept_keywords(question, llm)
+            original_concepts = extract_concept_keywords(question, llm)
         except Exception as exc:
             original_concepts_error = f"Concept extraction failed: {exc}"
 
@@ -400,34 +411,33 @@ def run_selected_modes(
                 if original_concepts:
                     mode_result["concept_keywords"] = original_concepts
                 else:
-                    mode_result["error"] = original_concepts_error or "Concept extraction did not return any keywords."
+                    mode_result["error"] = original_concepts_error or "Concept extraction returned no keywords."
                     mode_results.append(mode_result)
                     continue
 
         try:
-            with st.spinner(f"Running {config['label']}"):
-                if config["retrieval_variant"] == "simple":
-                    documents = retrieve_documents(mode_result["query_used"], store, settings["top_k"])
-                    subqueries: List[str] = []
-                else:
-                    cache_key = f"{config['query_source']}_subqueries"
-                    if cache_key not in subquery_cache:
-                        keywords = mode_result["concept_keywords"]
-                        if not keywords:
-                            raise ValueError("No concept keywords available for multi-query search.")
-                        generated_subqueries = generate_subqueries(
-                            mode_result["query_used"],
-                            keywords,
-                            llm,
-                        )
-                        generated_subqueries = ensure_original_question_subquery(
-                            generated_subqueries,
-                            question,
-                        )
-                        subquery_cache[cache_key] = generated_subqueries
-                    subqueries = subquery_cache[cache_key]
-                    mode_result["subqueries"] = subqueries
-                    documents = run_multi_query_search(subqueries, store, settings["top_k"])
+            if config["retrieval_variant"] == "simple":
+                documents = retrieve_documents(mode_result["query_used"], store, settings["top_k"])
+                subqueries: List[str] = []
+            else:
+                cache_key = f"{config['query_source']}_subqueries"
+                if cache_key not in subquery_cache:
+                    keywords = mode_result["concept_keywords"]
+                    if not keywords:
+                        raise ValueError("No concept keywords available for multi-query search.")
+                    generated_subqueries = generate_subqueries(
+                        mode_result["query_used"],
+                        keywords,
+                        llm,
+                    )
+                    generated_subqueries = ensure_original_question_subquery(
+                        generated_subqueries,
+                        question,
+                    )
+                    subquery_cache[cache_key] = generated_subqueries
+                subqueries = subquery_cache[cache_key]
+                mode_result["subqueries"] = subqueries
+                documents = run_multi_query_search(subqueries, store, settings["top_k"])
         except Exception as exc:
             mode_result["error"] = str(exc)
             mode_results.append(mode_result)
@@ -437,9 +447,8 @@ def run_selected_modes(
 
         if not documents:
             mode_result["answer"] = (
-                "No relevant manual passages were retrieved for this mode, so I cannot provide a grounded answer."
+                "No relevant manual passages were retrieved for this mode, so no grounded answer is available."
             )
-            mode_result["references"] = []
             mode_results.append(mode_result)
             continue
 
@@ -449,14 +458,8 @@ def run_selected_modes(
         try:
             response = llm.invoke(
                 [
-                    (
-                        "system",
-                        "You help users understand the CCHN Field Manual.",
-                    ),
-                    (
-                        "human",
-                        prompt,
-                    ),
+                    ("system", "You help users understand the CCHN Field Manual."),
+                    ("human", prompt),
                 ]
             )
             mode_result["answer"] = response.content
@@ -469,124 +472,89 @@ def run_selected_modes(
         mode_result["retrieved_count"] = len(mode_result["references"])
         mode_results.append(mode_result)
 
-    total_retrieved = sum(result.get("retrieved_count", 0) for result in mode_results)
-    update_run_state(
-        selected_modes=deduped_selection,
-        mode_results=mode_results,
-        retrieved_count=total_retrieved,
-        last_run_settings={
-            "vectorstore_path": str(path),
-            "embedding_model": settings["embedding_model"],
-            "chat_model": settings["chat_model"],
-            "top_k": settings["top_k"],
-        },
-        planning_artifacts={
-            "rewritten_query": (rewriting_plan or {}).get("rewritten_query"),
-            "rewritten_concepts": (rewriting_plan or {}).get("concept_keywords"),
-            "original_concepts": original_concepts,
-        },
-    )
+    artifacts = {
+        "rewritten_query": (rewriting_plan or {}).get("rewritten_query"),
+        "rewritten_concepts": (rewriting_plan or {}).get("concept_keywords"),
+        "original_concepts": original_concepts,
+        "rewriting_error": rewriting_error,
+        "concept_error": original_concepts_error,
+    }
+    return mode_results, artifacts
+
+
+def log_artifacts(logger: logging.Logger, artifacts: Dict[str, Any]) -> None:
+    if artifacts.get("rewritten_query"):
+        logger.info("Rewritten query: %s", artifacts["rewritten_query"])
+    if artifacts.get("rewritten_concepts"):
+        logger.info("Rewritten concepts: %s", ", ".join(artifacts["rewritten_concepts"]))
+    if artifacts.get("original_concepts"):
+        logger.info("Original concepts: %s", ", ".join(artifacts["original_concepts"]))
+    if artifacts.get("rewriting_error"):
+        logger.warning("Rewriting error: %s", artifacts["rewriting_error"])
+    if artifacts.get("concept_error"):
+        logger.warning("Concept extraction error: %s", artifacts["concept_error"])
+
+
+def log_mode_result(
+    logger: logging.Logger,
+    question: str,
+    result: Dict[str, Any],
+) -> None:
+    logger.info("--- Mode: %s ---", result.get("label", result.get("mode_id")))
+    logger.info("Question: %s", question)
+    logger.info("Query variant: %s | Retrieval: %s", result["query_variant"], result["retrieval_variant"])
+    if result.get("query_used"):
+        logger.info("Query used: %s", result["query_used"])
+    if result.get("concept_keywords"):
+        logger.info("Concept keywords: %s", ", ".join(result["concept_keywords"]))
+    if result.get("subqueries"):
+        for idx, subquery in enumerate(result["subqueries"], start=1):
+            logger.info("Subquery %d: %s", idx, subquery)
+    if result.get("error"):
+        logger.error("Error: %s", result["error"])
+        return
+    logger.info("Answer: %s", result.get("answer", "").strip() or "No answer returned.")
+    if result.get("references"):
+        for ref in result["references"]:
+            logger.info(
+                "Reference page %s (%s): %s",
+                ref.get("page"),
+                ref.get("element"),
+                ref.get("excerpt"),
+            )
+    else:
+        logger.info("No passages retrieved for this mode.")
 
 
 def main() -> None:
     load_dotenv()
-    st.set_page_config(page_title="Chatbot prototype", page_icon="💬")
+    if not os.getenv("OPENAI_API_KEY"):
+        raise EnvironmentError("OPENAI_API_KEY is not set. Export it or add it to a .env file.")
 
-    settings = get_rag_settings()
-    run_state = get_run_state()
+    logger, log_file = configure_logging()
+    logger.info("Starting mode regression run. Log file: %s", log_file)
 
-    if "chatbot_question_input" not in st.session_state:
-        st.session_state["chatbot_question_input"] = run_state["question"]
-    if "chatbot_mode_selection" not in st.session_state:
-        previous_selection = run_state.get("selected_modes") or []
-        st.session_state["chatbot_mode_selection"] = previous_selection or DEFAULT_MODE_SELECTION
+    settings = DEFAULT_SETTINGS.copy()
+    vectorstore_path = resolve_vectorstore_path(settings["vectorstore_path"])
+    if not vectorstore_path.exists():
+        raise FileNotFoundError(f"Vectorstore directory '{vectorstore_path}' was not found.")
 
-    st.title("CCHN Manual Assistant")
-    st.write(
-        "Ask a question about the CCHN Field Manual and this assistant will "
-        "run multiple retrieval strategies so you can compare their answers."
-    )
-    st.info("Need to tweak the engine? Head to the Engine page in the sidebar.")
+    logger.info("Loading vectorstore from %s", vectorstore_path)
+    store = load_vectorstore(vectorstore_path, settings["embedding_model"])
+    llm = build_chain(settings["chat_model"])
 
-    question = st.text_input(
-        "Your question",
-        placeholder="For example: What is a frontline negotiator?",
-        key="chatbot_question_input",
-    )
-    mode_selection = st.pills(
-        "Choose search modes to run",
-        options=[mode["id"] for mode in MODE_DEFINITIONS],
-        selection_mode="multi",
-        default=st.session_state["chatbot_mode_selection"],
-        format_func=lambda mode_id: MODE_LOOKUP[mode_id]["label"],
-        help="Compare original vs. rewritten questions and single vs. multi-query retrieval.",
-    )
-    st.session_state["chatbot_mode_selection"] = mode_selection
-
-    submit = st.button("Run selected modes", type="primary")
-
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        st.error("Set OPENAI_API_KEY in your environment before using the app.")
-        st.stop()
-
-    if submit:
-        trimmed_question = question.strip()
-        if not trimmed_question:
-            st.warning("Please enter a question before requesting an answer.")
-        elif not mode_selection:
-            st.warning("Select at least one search mode to continue.")
-        else:
-            run_selected_modes(trimmed_question, settings, mode_selection)
-            run_state = get_run_state()
-
-    if run_state.get("error"):
-        st.error(run_state["error"])
-
-    mode_results = run_state.get("mode_results", [])
-    if mode_results:
-        st.subheader("Mode comparison")
+    for question in TEST_QUESTIONS:
+        logger.info("=" * 80)
+        logger.info("Question: %s", question)
+        mode_results, artifacts = run_modes_for_question(question, settings, store, llm)
+        log_artifacts(logger, artifacts)
         for result in mode_results:
-            st.divider()
-            st.markdown(f"### {result.get('label', 'Search mode')}")
-            st.markdown(
-                f"*Query variant:* `{result.get('query_variant', '')}` &nbsp; | "
-                f"*Retrieval:* `{result.get('retrieval_variant', '')}`"
-            )
+            log_mode_result(logger, question, result)
 
-            st.markdown("**Query used**")
-            st.code(result.get("query_used", ""))
-
-            concept_keywords = result.get("concept_keywords") or []
-            if concept_keywords:
-                st.markdown("**Negotiation concepts detected**")
-                st.write(", ".join(concept_keywords))
-
-            subqueries = result.get("subqueries") or []
-            if subqueries:
-                st.markdown("**Subqueries executed**")
-                for subquery in subqueries:
-                    st.write(f"- {subquery}")
-
-            if result.get("error"):
-                st.error(result["error"])
-                continue
-
-            st.markdown("**Answer**")
-            st.write(result.get("answer", "").strip() or "No answer was generated.")
-
-            references = result.get("references", [])
-            if references:
-                st.markdown("**Retrieved passages**")
-                for ref in references:
-                    st.markdown(f"**Page {ref['page']} | {ref['element']}**")
-                    st.write(ref.get("content") or ref.get("excerpt", ""))
-            else:
-                st.info("No passages retrieved for this mode.")
-    else:
-        st.info("Ask a question and choose one or more modes to see comparative results.")
+    logger.info("Run complete. Detailed output written to %s", log_file)
 
 
 if __name__ == "__main__":
     main()
+
 

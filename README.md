@@ -23,6 +23,11 @@ Lightweight multimodal RAG workflow for the full CCHN Field Manual. The repo ing
    pip install -r requirements.txt
    ```
 4. Create `.env` with `OPENAI_API_KEY=...`.
+5. (macOS) Unify the OpenMP runtime once per install so FAISS and Torch use the same `libomp.dylib`:
+   ```bash
+   source .venv/bin/activate
+   python scripts/unify_openmp.py
+   ```
 
 ## Ingestion Workflow
 
@@ -48,23 +53,33 @@ Adjust paths, chunk sizes, and models as needed via CLI flags.
 ## CLI Question Answering
 
 ```bash
-KMP_DUPLICATE_LIB_OK=TRUE \
 python rag/answer.py \
   --question "What is a frontline negotiator?" \
   --vectorstore vectorstores/full_manual_faiss
 ```
 
-The script prints the grounded answer and chunk references. The `KMP_DUPLICATE_LIB_OK` flag avoids macOS OpenMP duplication warnings when using FAISS + OpenAI embeddings.
+The script prints the grounded answer and chunk references.
 
 ## Streamlit App
 
 ```bash
-KMP_DUPLICATE_LIB_OK=TRUE \
 streamlit run app/streamlit_app.py
 ```
 
 Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`. Provide an OpenAI API key in `.env` before launching.  
 The repository already tracks `vectorstores/full_manual_faiss`, so remote hosts (e.g., Streamlit Cloud) clone the ready-to-use index by default.
+
+## OpenMP Runtime Health Check (macOS)
+
+FAISS (`faiss-cpu==1.13.0`) and Torch (`torch==2.9.1`) each bundle `libomp.dylib`. Loading both copies crashes the process with `OMP: Error #15`. Keep the environment healthy by:
+
+1. Activating `.venv` and running `python scripts/unify_openmp.py` whenever dependencies are installed or upgraded.
+2. Verifying the fix via the regression harness:
+   ```bash
+   source .venv/bin/activate
+   python3 tests/mode_option_regression.py
+   ```
+   The suite finishes without setting `KMP_DUPLICATE_LIB_OK`, and the same setup applies to the CLI and Streamlit flows.
 
 ## Scaling to the Full Manual
 
