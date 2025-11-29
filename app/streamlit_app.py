@@ -20,7 +20,7 @@ def main() -> None:
     )
     auto_eval_page = st.Page(
         "pages/chatbot_auto_evaluation.py",
-        title="Chatbot auto evaluation",
+        title="LLM-as-a-Judge",
     )
     learnings_page = st.Page(
         "pages/chatbot_learnings.py",

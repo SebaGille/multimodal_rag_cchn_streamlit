@@ -115,9 +115,9 @@ def _compute_overall_stats(results: List[EvaluationResult]) -> Dict[str, float]:
 def main() -> None:
     load_dotenv()
     _ensure_env()
-    st.set_page_config(page_title="Chatbot auto evaluation", page_icon="🧪")
-    st.title("Chatbot auto evaluation")
-    st.write("Generate CCHN-grounded scenario questions, run the chatbot pipeline, and score responses with a fixed rubric.")
+    st.set_page_config(page_title="LLM-as-a-Judge", page_icon="🧪")
+    st.title("LLM-as-a-Judge")
+    st.write("LLM-as-a-Judge generates CCHN-grounded scenario questions, runs the chatbot pipeline, and scores responses with a fixed rubric.")
 
     state = _get_state()
 

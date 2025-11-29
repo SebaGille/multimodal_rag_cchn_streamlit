@@ -155,6 +155,41 @@ The user gets quick, practical tips that match the Mali scene.
         """
     )
 
+    st.header("LLM-as-a-Judge learnings")
+
+    st.subheader("1. Rubric anchored judging")
+    st.markdown(
+        """
+LLM-as-a-Judge uses the same five-dimension rubric as the human reviewers, so the scores mean something real.
+When Sofia from Cádiz writes about pushing for safe passage, the judge grades how she handled context, tools, and values, not just tone.
+We feed the rubric text back to the model in every call, which keeps the reasoning grounded instead of drifting into vague praise.
+It also lets us compare runs over time because the judge explains each sub-score, like, "Context quality suffered because no mapping of the militia network was mentioned."
+That small note tells the team exactly where to coach the chatbot next.
+        """
+    )
+
+    st.subheader("2. Scenario diversity injection")
+    st.markdown(
+        """
+To keep the judge honest we randomize the question pool with first-person diary style prompts.
+One run may include Omondi in Kisumu asking about barter corridors, while another has Mariana in Recife dealing with rival volunteer groups.
+The judge sees typos, informal verbs, and different English levels on purpose, so it learns to score realism instead of polished grammar.
+When the chatbot fumbles a detail, like forgetting to acknowledge a mayor in Quezon City, the judge cites that concrete miss in its explanation.
+Those grounded notes make the evaluation actionable for both product and training teams.
+        """
+    )
+
+    st.subheader("3. Why we kept a single judge")
+    st.markdown(
+        """
+We tested a multi-judge setup where three small models voted, but they disagreed wildly on red flags and slowed each batch by 4×.
+LLM-as-a-Judge now runs as one strong judge plus deterministic rubric checks, which keeps latency low enough to evaluate 20 questions in a meeting.
+When a verdict feels shaky, we re-run just that item with a different temperature and compare the rationales instead of re-judging everything.
+This approach gives us transparency similar to a panel without the operational overhead.
+It also makes it easy to show an example, like, "Judge flagged Fatou's negotiation in Gao because no follow-up safeguards were proposed," and discuss it with the team the same day.
+        """
+    )
+
 
 if __name__ == "__main__":
     main()
