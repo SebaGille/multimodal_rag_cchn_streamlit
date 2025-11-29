@@ -179,13 +179,13 @@ Those grounded notes make the evaluation actionable for both product and trainin
         """
     )
 
-    st.subheader("3. Why we kept a single judge")
+    st.subheader("3. Why we kept a single judge (for now)")
     st.markdown(
         """
-We tested a multi-judge setup where three small models voted, but they disagreed wildly on red flags and slowed each batch by 4×.
-LLM-as-a-Judge now runs as one strong judge plus deterministic rubric checks, which keeps latency low enough to evaluate 20 questions in a meeting.
-When a verdict feels shaky, we re-run just that item with a different temperature and compare the rationales instead of re-judging everything.
-This approach gives us transparency similar to a panel without the operational overhead.
+Multi-judge voting is planned for a future iteration because combining independent judges should reduce single-model bias, smooth noisy rubric scores, and raise confidence on red-flag detection via majority agreement.
+For the current milestone we kept a single deterministic judge plus rubric sanity checks so that an evaluation batch still finishes during one working session.
+When a verdict feels shaky, we manually re-run that item with a different temperature and compare rationales instead of re-judging everything.
+This compromise keeps latency low today while leaving room to plug in the multi-judge ensemble once we can afford the extra cost and orchestration.
 It also makes it easy to show an example, like, "Judge flagged Fatou's negotiation in Gao because no follow-up safeguards were proposed," and discuss it with the team the same day.
         """
     )

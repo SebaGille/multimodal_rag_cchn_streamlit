@@ -2,6 +2,8 @@
 
 Lightweight multimodal RAG workflow for the full CCHN Field Manual. The repo ingests the complete PDF, builds a FAISS vector store with OpenAI embeddings, exposes a CLI answer helper, and ships a Streamlit UI.
 
+> **Purpose.** This repository is strictly a technology sandbox to explore how LLMs can generate **manual-grounded answers for CCHN students**. It is not intended for operational negotiations or production deployments.
+
 ## Repository Layout
 
 - `ingestion/parse_pdf.py` – uses Unstructured to convert PDFs into LangChain documents.
@@ -66,8 +68,29 @@ The script prints the grounded answer and chunk references.
 streamlit run app/streamlit_app.py
 ```
 
-Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`. Provide an OpenAI API key in `.env` before launching.  
+The navigation surfaces four core workflows plus a documentation page:
+
+- **Chatbot prototype** – single-question interface with history and a debug pane that shows rewrite/intent, sub-queries, and retrieved chunks.
+- **LLM-as-a-Judge** – batch evaluation harness that auto-generates student-style dilemmas, runs the chatbot, and scores answers against the rubric.
+- **Evaluation analytics** – aggregates the logged evaluator scores to highlight weak themes and red-flag answers.
+- **Chatbot learnings** – lightweight notebook of lessons captured from experiments.
+- **Pipeline details** – product-facing overview that explains every pipeline step, key parameters, and the exact prompts sent to LLMs so stakeholders can audit the flow.
+
+Provide an OpenAI API key in `.env` before launching. Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`.  
 The repository already tracks `vectorstores/full_manual_faiss`, so remote hosts (e.g., Streamlit Cloud) clone the ready-to-use index by default.
+
+## Pipeline Overview
+
+The Streamlit “Pipeline details” page documents how the system operates end-to-end. Key stages include:
+
+1. **Corpus ingestion & vectorization** – `ingestion/parse_pdf.py` plus `ingestion/build_vectorstore.py` convert the Field Manual into chunked LangChain documents and store them in `vectorstores/full_manual_faiss` (800-char chunks, 150 char overlap, `text-embedding-3-small`).
+2. **Runtime resources & controls** – `rag_state.py` centralizes defaults for vector store paths, embedding/chat models, and retrieval fan-out (`top_k`, derived `per_query_k`, `final_k`). `get_chat_resources()` loads FAISS and a zero-temperature `ChatOpenAI` instance once via `st.cache_resource`.
+3. **Question rewriting & intent tagging** – `chat_pipeline.rewrite_query` rewrites the user scenario, extracts 5-10 concept keywords, and tags one of the allowed negotiation intents before any retrieval happens. The README page includes prompt excerpts for transparency.
+4. **Intent-aware retrieval** – `retrieve_passages` blends the rewritten query, intent-specific templates, and keyword expansions to gather high-relevance manual chunks, keeping only the top scoring snippets per source/page/text combination.
+5. **Grounded response drafting** – `generate_answer` composes a three-part answer (Problem framing → Manual guidance → Practical considerations) strictly from the retrieved context. When no evidence exists, it returns a guardrail message.
+6. **Automated evaluation loop** – `chatbot_auto_evaluation.py` (LLM-as-a-Judge) generates fresh student-style dilemmas, runs the chatbot, judges answers using the rubric in `eval/judge.py`, and logs JSON/TXT artifacts. `evaluation_analytics.py` visualizes these logs.
+
+Whenever you update the Field Manual source or change prompt logic, revisit the Pipeline details page to keep stakeholders aligned.
 
 ## OpenMP Runtime Health Check (macOS)
 
