@@ -30,8 +30,14 @@ def main() -> None:
         "pages/chatbot_learnings.py",
         title="Chatbot learnings",
     )
+    pipeline_page = st.Page(
+        "pages/pipeline_details.py",
+        title="Pipeline details",
+    )
 
-    navigation = st.navigation([chatbot_page, auto_eval_page, eval_analytics_page, learnings_page])
+    navigation = st.navigation(
+        [chatbot_page, auto_eval_page, eval_analytics_page, learnings_page, pipeline_page]
+    )
     navigation.run()
 
 
