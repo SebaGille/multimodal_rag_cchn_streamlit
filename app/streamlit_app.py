@@ -18,12 +18,16 @@ def main() -> None:
         title="Chatbot prototype",
         default=True,
     )
+    auto_eval_page = st.Page(
+        "pages/chatbot_auto_evaluation.py",
+        title="Chatbot auto evaluation",
+    )
     learnings_page = st.Page(
         "pages/chatbot_learnings.py",
         title="Chatbot learnings",
     )
 
-    navigation = st.navigation([chatbot_page, learnings_page])
+    navigation = st.navigation([chatbot_page, auto_eval_page, learnings_page])
     navigation.run()
 
 
