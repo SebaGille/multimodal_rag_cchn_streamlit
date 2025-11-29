@@ -22,12 +22,16 @@ def main() -> None:
         "pages/chatbot_auto_evaluation.py",
         title="LLM-as-a-Judge",
     )
+    eval_analytics_page = st.Page(
+        "pages/evaluation_analytics.py",
+        title="Evaluation analytics",
+    )
     learnings_page = st.Page(
         "pages/chatbot_learnings.py",
         title="Chatbot learnings",
     )
 
-    navigation = st.navigation([chatbot_page, auto_eval_page, learnings_page])
+    navigation = st.navigation([chatbot_page, auto_eval_page, eval_analytics_page, learnings_page])
     navigation.run()
 
 
