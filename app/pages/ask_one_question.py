@@ -97,9 +97,9 @@ def handle_user_question(
 
 def main() -> None:
     load_dotenv()
-    st.set_page_config(page_title="CCHN Negotiation Chatbot", page_icon="🤝")
+    st.set_page_config(page_title="Ask one question", page_icon="🤝")
 
-    st.title("CCHN Negotiation Chatbot")
+    st.title("Ask one question")
     st.write(
         "Ask a negotiation question and receive a careful answer grounded in the CCHN Field Manual."
     )

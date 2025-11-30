@@ -190,6 +190,27 @@ It also makes it easy to show an example, like, "Judge flagged Fatou's negotiati
         """
     )
 
+    st.header("Live conversation learning")
+    st.markdown(
+        """
+We also tried to hold a live back-and-forth conversation using the same single-turn retrieval stack.
+It felt flat, because that stack is only built to answer one question grounded in a few chunks, not to respond like a partner in dialogue.
+Here is what we saw in that real chat:
+
+1. **No turn-taking.** When the user added the short update "food might be perished," the chatbot ignored it and launched a fresh essay, so the flow broke immediately.
+2. **Copy-paste answers.** The follow-up reply reused the same wall of text, citations, and boilerplate closing, so it looked like a template instead of a thought that reacts.
+3. **No compression.** Later turns stayed as long and formal as the first answer, even though the user only typed a fragment, so the pacing never adjusted.
+4. **Zero conversational markers.** There was no "got it," no clarification, no reformulation—nothing that signals the model heard the new cue.
+5. **Context reset.** The assistant re-explained legitimacy, trust-building, and sourcing from the manual even though that context was already established, which made the user feel unheard.
+6. **Mechanical follow-up question.** Both turns ended with nearly the same question about local authorities, which exposed that the model is running a pattern, not listening.
+7. **No use of the new fact.** The concern about spoiled food never shaped the advice, so the practical barrier (food safety) stayed unaddressed.
+8. **No negotiation arc.** A human negotiator would shift into diagnosing the barrier, probing the concern, and proposing next steps; the chatbot just repeated generic guidance.
+
+Conclusion: when we reuse a one-shot, grounded-answer feature for multi-turn dialogue, we create a chatbot that talks *at* people instead of *with* them.
+The fix is not only better retrieval, but also stateful turn memory, answer compression, and explicit negotiation reasoning so each reply feels like part of the same conversation.
+        """
+    )
+
 
 if __name__ == "__main__":
     main()

@@ -275,17 +275,16 @@ def generate_answer(
     prompt = (
         "Original scenario:\n"
         f"{user_question.strip()}\n\n"
-        "Rewritten negotiation problem:\n"
+        "Rewritten negotiation problem (for grounding only—do not repeat verbatim):\n"
         f"{rewritten_query.strip()}\n\n"
         "Excerpts from the CCHN Field Manual:\n"
         f"{context_text}\n\n"
-        "Write a grounded answer with this structure:\n"
-        "1. Problem framing – restate the generic negotiation challenge in a neutral tone.\n"
-        "2. Manual guidance – summarise the key principles, tools, or sections from the manual that apply.\n"
-        "3. Practical considerations – translate those principles back to the user's scenario using conditional language (\"you may\", \"one option could be\").\n"
-        "If the manual is indirect, explicitly note that it suggests principles rather than definitive rules.\n"
-        "Reference tools or sections when mentioned in the excerpts. Keep the tone careful and avoid prescribing organisational policy.\n"
-        "Close with one sentence reminding the user that this guidance comes from the CCHN Field Manual."
+        "Write one cohesive answer that blends evidence and application. Requirements:\n"
+        "- Begin by summarising the relevant manual guidance in natural prose, citing tools/sections when present.\n"
+        "- Immediately translate those principles back to the user's situation using careful, conditional language (\"you may\", \"one option could be\").\n"
+        "- Keep everything inside a single section—no numbered headings or explicit part labels.\n"
+        "- If the manual only offers general principles, state that limitation before suggesting cautious actions.\n"
+        "- Close with one sentence reminding the user that the guidance comes from the CCHN Field Manual."
     )
 
     response = llm.invoke(

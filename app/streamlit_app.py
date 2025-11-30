@@ -13,9 +13,15 @@ import streamlit as st
 
 
 def main() -> None:
-    chatbot_page = st.Page(
-        "pages/chatbot.py",
-        title="Chatbot prototype",
+    # Temporarily hide the chatbot assistant page from navigation.
+    # assistant_page = st.Page(
+    #     "pages/ai_chatbot_assistant.py",
+    #     title="AI Chatbot Assistant",
+    #     default=True,
+    # )
+    ask_one_page = st.Page(
+        "pages/ask_one_question.py",
+        title="Ask one question",
         default=True,
     )
     auto_eval_page = st.Page(
@@ -36,7 +42,13 @@ def main() -> None:
     )
 
     navigation = st.navigation(
-        [chatbot_page, auto_eval_page, eval_analytics_page, learnings_page, pipeline_page]
+        [
+            ask_one_page,
+            auto_eval_page,
+            eval_analytics_page,
+            learnings_page,
+            pipeline_page,
+        ]
     )
     navigation.run()
 

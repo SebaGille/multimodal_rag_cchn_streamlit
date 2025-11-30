@@ -32,10 +32,10 @@ ANSWER_PROMPT_EXCERPT = dedent(
     You are the CCHN Negotiation Chatbot. Base every answer strictly on the provided manual excerpts. Do not speculate beyond the text. Use careful, grounded language.
 
     Human message skeleton:
-    - Provides the original scenario, rewritten negotiation problem, and formatted manual chunks.
-    - Asks for a 3-part answer: (1) Problem framing, (2) Manual guidance, (3) Practical considerations.
-    - Requires conditional language ("you may", "one option could be") and references to tools/sections when present.
-    - Close with a reminder that guidance comes from the CCHN Field Manual.
+    - Provides the original scenario, rewritten negotiation problem (for grounding only), and formatted manual chunks.
+    - Requests one blended paragraph-style answer that first summarises the manual guidance, then immediately translates it back to the user's situation with conditional language ("you may", "one option could be").
+    - Forbids numbered headings or explicit part labels; everything lives inside a single section.
+    - Requires citations of tools/sections when available plus a closing reminder that the guidance stems from the CCHN Field Manual.
     """
 ).strip()
 
@@ -169,11 +169,11 @@ def main() -> None:
 
     _render_step(
         title="5. Grounded response drafting",
-        description="Compose a careful answer using only the retrieved manual evidence and a fixed three-part structure.",
+        description="Compose a careful answer using only the retrieved manual evidence and merge guidance with scenario-aware considerations into one section.",
         parameters=[
             ("Owner", "`chat_pipeline.generate_answer`"),
             ("Context formatter", "`format_chunks_for_prompt` labels each chunk with page and manual section"),
-            ("Structure", "Problem framing -> Manual guidance -> Practical considerations"),
+            ("Structure", "Single blended narrative: manual guidance followed by conditional scenario translation"),
             ("Safety fallback", "If no chunks survive retrieval, return a stock message that the manual has no coverage"),
         ],
         prompt_blocks=[("Answer prompt", ANSWER_PROMPT_EXCERPT)],
@@ -182,15 +182,15 @@ def main() -> None:
 
     _render_step(
         title="6. Streamlit surface & observability",
-        description="Expose the pipeline via `pages/chatbot.py` and supporting utilities so PMs and SMEs can inspect every step.",
+        description="Expose the pipeline via `pages/ai_chatbot_assistant.py` and supporting utilities so PMs and SMEs can inspect every step.",
         parameters=[
             ("Entry point", "`app/streamlit_app.py` with navigation across Chatbot, LLM-as-a-Judge, Analytics, Learnings, and this page"),
             ("Session state keys", "`rag_settings`, `rag_run`, chat history, debug payloads"),
             (
                 "User workflow",
-                "Form-based question input -> spinner while `run_cchn_chatbot` executes -> chat history + advanced debug panel",
+                "AI Chatbot Assistant relies on `st.chat_input` for multi-turn chats; Ask one question keeps the form-driven flow with spinner + history.",
             ),
-            ("Debug panel", "Surfaces rewritten query, detected intent, concept keywords, retrieval sub-queries, and scored chunks"),
+            ("Debug panel", "`pages/ask_one_question.py` exposes the Advanced debug expander with rewrite/intent/queries/chunks"),
             ("Evaluation analytics", "`pages/evaluation_analytics.py` aggregates logged rubric scores and red flags from prior runs"),
         ],
         notes="Because every resource loader defers to Streamlit caching, the UI stays snappy even while re-running the script on every interaction.",

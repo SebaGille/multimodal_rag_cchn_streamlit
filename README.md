@@ -70,7 +70,8 @@ streamlit run app/streamlit_app.py
 
 The navigation surfaces four core workflows plus a documentation page:
 
-- **Chatbot prototype** – single-question interface with history and a debug pane that shows rewrite/intent, sub-queries, and retrieved chunks.
+- **AI Chatbot Assistant** – multi-turn chat surface that keeps the conversation context lightweight and focused on grounded answers.
+- **Ask one question** – single-question interface with history and a debug pane that shows rewrite/intent, sub-queries, and retrieved chunks.
 - **LLM-as-a-Judge** – batch evaluation harness that auto-generates student-style dilemmas, runs the chatbot, and scores answers against the rubric.
 - **Evaluation analytics** – aggregates the logged evaluator scores to highlight weak themes and red-flag answers.
 - **Chatbot learnings** – lightweight notebook of lessons captured from experiments.
@@ -87,7 +88,7 @@ The Streamlit “Pipeline details” page documents how the system operates end-
 2. **Runtime resources & controls** – `rag_state.py` centralizes defaults for vector store paths, embedding/chat models, and retrieval fan-out (`top_k`, derived `per_query_k`, `final_k`). `get_chat_resources()` loads FAISS and a zero-temperature `ChatOpenAI` instance once via `st.cache_resource`.
 3. **Question rewriting & intent tagging** – `chat_pipeline.rewrite_query` rewrites the user scenario, extracts 5-10 concept keywords, and tags one of the allowed negotiation intents before any retrieval happens. The README page includes prompt excerpts for transparency.
 4. **Intent-aware retrieval** – `retrieve_passages` blends the rewritten query, intent-specific templates, and keyword expansions to gather high-relevance manual chunks, keeping only the top scoring snippets per source/page/text combination.
-5. **Grounded response drafting** – `generate_answer` composes a three-part answer (Problem framing → Manual guidance → Practical considerations) strictly from the retrieved context. When no evidence exists, it returns a guardrail message.
+5. **Grounded response drafting** – `generate_answer` blends the manual guidance with scenario-aware considerations into a single cohesive answer. When no evidence exists, it returns a guardrail message.
 6. **Automated evaluation loop** – `chatbot_auto_evaluation.py` (LLM-as-a-Judge) generates fresh student-style dilemmas, runs the chatbot, judges answers using the rubric in `eval/judge.py`, and logs JSON/TXT artifacts. `evaluation_analytics.py` visualizes these logs.
 
 Whenever you update the Field Manual source or change prompt logic, revisit the Pipeline details page to keep stakeholders aligned.
