@@ -74,7 +74,7 @@ The navigation surfaces four core workflows plus a documentation page:
 - **Ask one question** – single-question interface with history and a debug pane that shows rewrite/intent, sub-queries, and retrieved chunks.
 - **LLM-as-a-Judge** – batch evaluation harness that auto-generates student-style dilemmas, runs the chatbot, and scores answers against the rubric.
 - **Evaluation analytics** – aggregates the logged evaluator scores to highlight weak themes and red-flag answers.
-- **Chatbot learnings** – lightweight notebook of lessons captured from experiments.
+- **Project insights and learnings** – lightweight notebook of lessons captured from experiments.
 - **Pipeline details** – product-facing overview that explains every pipeline step, key parameters, and the exact prompts sent to LLMs so stakeholders can audit the flow.
 
 Provide an OpenAI API key in `.env` before launching. Sidebar controls let you point to any FAISS directory, choose embedding/chat models, and select `k`.  

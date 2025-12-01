@@ -24,6 +24,10 @@ def main() -> None:
         title="Ask one question",
         default=True,
     )
+    agentic_page = st.Page(
+        "pages/agentic_ai_assistant.py",
+        title="Agentic AI assistant",
+    )
     auto_eval_page = st.Page(
         "pages/chatbot_auto_evaluation.py",
         title="LLM-as-a-Judge",
@@ -33,8 +37,8 @@ def main() -> None:
         title="Evaluation analytics",
     )
     learnings_page = st.Page(
-        "pages/chatbot_learnings.py",
-        title="Chatbot learnings",
+        "pages/project_insights_and_learnings.py",
+        title="Project insights and learnings",
     )
     pipeline_page = st.Page(
         "pages/pipeline_details.py",
@@ -44,6 +48,7 @@ def main() -> None:
     navigation = st.navigation(
         [
             ask_one_page,
+            agentic_page,
             auto_eval_page,
             eval_analytics_page,
             learnings_page,
