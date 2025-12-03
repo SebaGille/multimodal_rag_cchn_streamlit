@@ -163,36 +163,32 @@ The user gets quick, practical tips that match the Mali scene.
     with llm_judge_tab:
         st.header("LLM-as-a-Judge learnings")
 
-        st.subheader("1. Rubric anchored judging")
+        st.subheader("Rubric-anchored scoring as a measurable model of negotiation competence")
         st.markdown(
             """
-LLM-as-a-Judge uses the same five-dimension rubric as the human reviewers, so the scores mean something real.
-When Sofia from Cádiz writes about pushing for safe passage, the judge grades how she handled context, tools, and values, not just tone.
-We feed the rubric text back to the model in every call, which keeps the reasoning grounded instead of drifting into vague praise.
-It also lets us compare runs over time because the judge explains each sub-score, like, "Context quality suffered because no mapping of the militia network was mentioned."
-That small note tells the team exactly where to coach the chatbot next.
+Rubric-anchored scoring solidifies negotiation competence into measurable signals.
+The judge leans on a five-part rubric (context mapping, mandate clarity, principled reasoning, etc.) that turns the field manual’s abstractions into explicit variables.
+Because the rubric text accompanies every evaluation call, the judge behaves like a fixed scoring function: identical inputs go through identical criteria, yielding comparable outputs.
+Each sub-score explanation works as the qualitative evidence for the numeric label, so when the judge highlights something like “external factors identified but not linked to strategy,” the team immediately knows which dimension slipped and how to improve it.
             """
         )
 
-        st.subheader("2. Scenario diversity injection")
+        st.subheader("Scenario diversity as robustness testing")
         st.markdown(
             """
-To keep the judge honest we randomize the question pool with first-person diary style prompts.
-One run may include Omondi in Kisumu asking about barter corridors, while another has Mariana in Recife dealing with rival volunteer groups.
-The judge sees typos, informal verbs, and different English levels on purpose, so it learns to score realism instead of polished grammar.
-When the chatbot fumbles a detail, like forgetting to acknowledge a mayor in Quezon City, the judge cites that concrete miss in its explanation.
-Those grounded notes make the evaluation actionable for both product and training teams.
+Scenario diversity functions as robustness testing.
+Prompts span messy phrasing, typos, and multiple English levels to ensure the scorer survives noisy, real-world inputs rather than overfitting to tidy scripts.
+The judge’s critiques—say, noting that a local stakeholder from the prompt never reappeared in the answer—double as actionable error signals, guiding systematic fixes instead of cosmetic style tweaks.
             """
         )
 
-        st.subheader("3. Why we kept a single judge (for now)")
+        st.subheader("Single deterministic judge as a controlled scoring baseline")
         st.markdown(
             """
-Multi-judge voting is planned for a future iteration because combining independent judges should reduce single-model bias, smooth noisy rubric scores, and raise confidence on red-flag detection via majority agreement.
-For the current milestone we kept a single deterministic judge plus rubric sanity checks so that an evaluation batch still finishes during one working session.
-When a verdict feels shaky, we manually re-run that item with a different temperature and compare rationales instead of re-judging everything.
-This compromise keeps latency low today while leaving room to plug in the multi-judge ensemble once we can afford the extra cost and orchestration.
-It also makes it easy to show an example, like, "Judge flagged Fatou's negotiation in Gao because no follow-up safeguards were proposed," and discuss it with the team the same day.
+Running a single deterministic judge establishes a controlled baseline.
+With a locked-in evaluator, any score drift stems from the chatbot, not the rubric, enabling clean comparisons across batches.
+When a verdict feels borderline, the team can re-run that exact case at a different temperature without re-processing the entire dataset.
+This keeps latency and cost predictable while paving the way for future experimental sophistication: multi-judge ensembles, inter-rater agreement tracking, and even confidence intervals once the baseline is fully understood.
             """
         )
 
