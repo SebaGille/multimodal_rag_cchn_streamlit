@@ -16,7 +16,8 @@ def _format_scores(result: EvaluationResult) -> str:
 
 def _write_text_log(run: EvaluationRun, path: Path) -> None:
     lines = [
-        f"Evaluation run: {run.question_set.generated_at.isoformat()}",
+        f"Evaluation run: {run.completed_at.isoformat()}",
+        f"Question set generated: {run.question_set.generated_at.isoformat()}",
         f"Question count: {len(run.question_set.questions)}",
         f"Difficulty mix: {run.question_set.difficulty_mix_note}",
         "",
@@ -53,6 +54,7 @@ def _build_json_payload(run: EvaluationRun) -> dict:
     return {
         "log_version": 1,
         "metadata": {
+            "completed_at": run.completed_at.isoformat(),
             "generated_at": run.question_set.generated_at.isoformat(),
             "question_count": len(run.question_set.questions),
             "difficulty_note": run.question_set.difficulty_mix_note,
@@ -79,11 +81,19 @@ def _build_json_payload(run: EvaluationRun) -> dict:
 def write_eval_log(run: EvaluationRun, *, log_dir: Path | None = None) -> Path:
     target_dir = log_dir or LOG_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = run.question_set.generated_at.strftime("%Y%m%d_%H%M%S")
-    base_path = target_dir / f"eval_{timestamp}"
+    timestamp = run.completed_at.strftime("%Y%m%d_%H%M%S")
+    base_name = f"eval_{timestamp}"
+    candidate_base = target_dir / base_name
+    suffix = 1
 
-    text_path = base_path.with_suffix(".txt")
-    json_path = base_path.with_suffix(".json")
+    def _resolve_paths(base_candidate: Path) -> tuple[Path, Path]:
+        return base_candidate.with_suffix(".txt"), base_candidate.with_suffix(".json")
+
+    text_path, json_path = _resolve_paths(candidate_base)
+    while text_path.exists() or json_path.exists():
+        candidate_base = target_dir / f"{base_name}_{suffix}"
+        suffix += 1
+        text_path, json_path = _resolve_paths(candidate_base)
 
     _write_text_log(run, text_path)
     payload = _build_json_payload(run)

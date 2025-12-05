@@ -47,4 +47,5 @@ class EvaluationRun:
     results: List[EvaluationResult]
     overall_stats: Dict[str, float]
     red_flag_count: int
+    completed_at: datetime = field(default_factory=datetime.utcnow)
 

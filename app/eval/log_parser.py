@@ -142,7 +142,7 @@ def _parse_json_log(path: Path) -> List[LoggedAnswer]:
         return []
 
     metadata = data.get("metadata", {})
-    ts_value = metadata.get("generated_at")
+    ts_value = metadata.get("completed_at") or metadata.get("generated_at")
     if isinstance(ts_value, str):
         try:
             run_ts = datetime.fromisoformat(ts_value)
